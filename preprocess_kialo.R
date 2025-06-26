@@ -13,10 +13,14 @@ preprocess_arguments <- function(
     sensitivity_prime = 0.3, # sensitivity defend value without other information
     sensitivity_prime_attack = -0.5 # sensitivity attack value without other information
 ) {
+  print(file)
   dfl <- read_lines(file)
 #  dfl <- strsplit(dfl, "\n")[[1]]  # FIXME Why is this?
   df_title <- gsub("Discussion Name: ", "", dfl[1])
   dfl <- dfl[-(1:2)]
+  if(any(!grepl("^[0-9]", dfl))) {
+    print(paste("Problematic page breaks near text ", dfl[!grepl("^[0-9]", dfl)]))
+  }
   df <- data.frame(level = regexpr("\\. ",dfl))
   df$id = substr(dfl,1,df$level-1)
   df$interaction <- substr(dfl,df$level+2, df$level+4)  # FIXME What would be a better name than interaction?
@@ -30,7 +34,7 @@ preprocess_arguments <- function(
   df$relevance <- ifelse(df$interaction=="Pro",sensitivity_prime, sensitivity_prime_attack)
   df$truth <- ifelse(grepl("http", df$text), truth_prior_with_reference, truth_prior)
   df$class <- "truth"  # Assume truth if not known that relevance
-  df$class <- ifelse(df$interaction=="Thesis", "fact", df$class)
+  df$class <- ifelse(df$level==0, "fact", df$class)  # Assume factual discussion
   if(!any(is.na(relevants))) df$class[df$id %in% relevants] <- "relevance"
   df$alias <- ifelse(grepl("^-> See", df$text), gsub("\\.$", "", substr(df$text,8,999)), "")
   df$alias[grepl("discussion",df$alias)] <- ""
@@ -40,7 +44,7 @@ preprocess_arguments <- function(
 }
 
 out <- data.frame()
-contexts <- c("covid", "climate", "god")
+contexts <- c("covid", "climate")  # , "god")
 
 for(context in contexts) {
   path <- paste0("data/", context, "/")

@@ -1,4 +1,7 @@
 ### UPDATING ARGUMENT TRUTHS AND RELEVANCES
+# This is code is forked from Op_en2382/update on page [[Discussion]]
+# These functions update the argument network C -> B -> A where C is a relevance
+# argument and B is truth argument.
 
 # objects.latest("Op_en2382", code_name="update") # [[Discussion]] update_truth, update_relevance, infer_tree
 
@@ -6,10 +9,12 @@ infer_tree <- function (df, verbose = FALSE) {
   args_by_level <- df$id[order(-df$level)]
   cols <- c("text", "truth")  # Columns inherited from alias
   for (arg in args_by_level) {
-    if (length(df$id[df$id == arg]) != 1) 
-      warning("Argument ", arg, " is not unique.")
-    parents_truth <- df$id[df$object == arg & df$class == "truth"]
-    parents_relevance <- df$id[df$object == arg & df$class == "relevance"]
+    if (length(df$id[df$id == arg]) != 1) {
+      warning(paste0("Argument ", arg, " is not unique."))
+      next
+    }
+    parents_truth <- df$id[df$target == arg & df$class == "truth"]
+    parents_relevance <- df$id[df$target == arg & df$class == "relevance"]
     alias <- df$alias[df$id == arg]
     if (!is.na(alias)) {if(alias != "") {
       df[df$id == arg, cols] <- df[df$id == alias, cols]
@@ -36,8 +41,11 @@ infer_tree <- function (df, verbose = FALSE) {
   return(df)
 }
 
-update_truth <- function (pa, pb, relb) 
-{
+update_truth <- function(
+    pa, # P(A). This is updated to P(A|B).
+    pb, # P(B)
+    relb # parameter rel(B) (relevance) for producing se = P(B|A)
+) {
   if (any(pa >= 1) | any(pa <= 0)) 
     stop("probability P(A) must be between ]0,1[, not ", 
          pa)
@@ -56,8 +64,11 @@ update_truth <- function (pa, pb, relb)
   return(pab)
 }
 
-update_relevance <- function (relb, pci, relci) 
-{
+update_relevance <- function(
+    relb, # relevance parameter prior for argument B: rel(B), ]-1,1[. This is updated.
+    pci, # vector of probabilities P(C_i)
+    relci # vector of relevance parameters for parent arguments C_i: rel(C_i), ]-1,1[
+) {
   if (any(relb <= -1) | any(relb >= 1)) 
     stop("relb must be between ]-1,1[, not", relb)
   if (any(pci >= 1) | any(pci <= 0)) 

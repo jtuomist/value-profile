@@ -2,3 +2,5 @@ data/
 .Rhistory
 .Rproj.user
 .RData
+.DS_Store
+.DS_Store?
